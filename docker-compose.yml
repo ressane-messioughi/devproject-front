@@ -1,0 +1,80 @@
+# Orchestrateur de DevProject : interface, API et base de donnees.
+#
+# Ce fichier vit dans le depot du front, mais construit aussi l'API : il faut
+# donc cloner les deux depots cote a cote.
+#
+#   git clone https://github.com/ressane-messioughi/devproject-front.git DPJ-Frontend
+#   git clone https://github.com/ressane-messioughi/devproject-back.git  DPJ-Backend
+#   cd DPJ-Frontend
+#   cp .env.example.docker .env   puis remplir les valeurs
+#   docker compose up -d --build
+#
+
+services:
+
+  # ─────────────── 1. LA BASE DE DONNEES ───────────────
+  db:
+    image: mysql:8.4                    # image officielle, rien a construire
+    container_name: devproject-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}        # MySQL cree cette base au 1er demarrage
+    ports:
+      - "3307:3306"                     # 3307 sur la machine pour ne pas gener
+                                        # un MySQL/XAMPP deja lance sur 3306
+    volumes:
+      # Le volume garde les donnees quand le conteneur est supprime.
+      - donnees_mysql:/var/lib/mysql
+      # Tout script place ici est execute au tout premier demarrage seulement.
+      - ./docker/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      # Sans ca, le back demarre avant que MySQL soit pret et plante aussitot.
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${DB_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # ─────────────── 2. L'API ───────────────
+  back:
+    build: ../DPJ-Backend                # construit l'image depuis le Dockerfile
+    container_name: devproject-back
+    restart: unless-stopped
+    environment:
+      # "db" est le nom du service ci-dessus : dans le reseau cree par Compose,
+      # il fait office de nom de machine. Ce n'est plus localhost.
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      JWT_SECRET: ${JWT_SECRET}
+      PORT: 3000
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy      # attend que la base reponde vraiment
+
+  # ─────────────── 3. L'INTERFACE ───────────────
+  front:
+    build:
+      context: .
+      args:
+        # Valeurs injectees pendant la construction (voir le Dockerfile du front)
+        VITE_API_URL: http://localhost:3000/api
+        VITE_SOCKET_URL: http://localhost:3000
+        VITE_APP_URL: http://localhost:5173
+    container_name: devproject-front
+    restart: unless-stopped
+    ports:
+      - "5173:80"                       # 5173 sur la machine -> 80 dans nginx
+    depends_on:
+      - back
+
+# Volume nomme, gere par Docker : c'est la memoire de la base de donnees.
+volumes:
+  donnees_mysql:
