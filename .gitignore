@@ -25,3 +25,6 @@ dist-ssr
 *.sln
 *.sw?
 
+
+# Donnees exportees de la base locale, jamais versionnees
+docker/init/02-donnees.sql
