@@ -10,6 +10,11 @@
 #   docker compose up -d --build
 #
 
+# Nom du projet. Sans cette ligne, Docker utilise le nom du dossier : deplacer
+# ou renommer le dossier changerait le nom du volume, et la base repartirait
+# vide sans qu'on comprenne pourquoi.
+name: devproject
+
 services:
 
   # ─────────────── 1. LA BASE DE DONNEES ───────────────
@@ -21,8 +26,8 @@ services:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: ${DB_NAME}        # MySQL cree cette base au 1er demarrage
     ports:
-      - "3307:3306"                     # 3307 sur la machine pour ne pas gener
-                                        # un MySQL/XAMPP deja lance sur 3306
+      - "3308:3306"                     # 3308 sur la machine : 3306 est pris par XAMPP et 3307 par un
+                                        # MySQL installe via Homebrew. A l interieur, MySQL reste sur 3306.
     volumes:
       # Le volume garde les donnees quand le conteneur est supprime.
       - donnees_mysql:/var/lib/mysql
@@ -50,6 +55,7 @@ services:
       DB_NAME: ${DB_NAME}
       JWT_SECRET: ${JWT_SECRET}
       PORT: 3000
+      CORS_ORIGIN: ${CORS_ORIGIN:-} 
       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
@@ -71,7 +77,7 @@ services:
     container_name: devproject-front
     restart: unless-stopped
     ports:
-      - "5173:80"                       # 5173 sur la machine -> 80 dans nginx
+      - "127.0.0.1:8080:80"                       # 8080 sur la machine -> 80 dans nginx
     depends_on:
       - back
 

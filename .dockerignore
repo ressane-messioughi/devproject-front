@@ -7,3 +7,9 @@ npm-debug.log
 .claude
 Dockerfile
 .dockerignore
+
+# Documentation et fichiers de projet inutiles a l'execution
+*.md
+docs
+docker
+docker-compose.yml
