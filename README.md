@@ -54,7 +54,7 @@ Laissées vides, l'application fonctionne normalement — seul l'upload d'avatar
 sera indisponible.
 
 Comptez **deux à trois minutes** la première fois : Docker télécharge MySQL et
-nginx, construit les deux images et importe le jeu de données.
+nginx, construit les deux images et crée les 11 tables de la base.
 
 ### ➜ L'application est sur **http://localhost:8080**
 
@@ -79,20 +79,24 @@ Les étapes **7** et **9** sont la fonctionnalité temps réel : c'est là que
 Socket.IO travaille.
 
 <details>
-<summary><b>À propos du jeu de données pré-chargé</b></summary>
+<summary><b>Pourquoi la base est vide au départ</b></summary>
 
 <br>
 
-La base est importée au premier démarrage avec des projets, des équipes et des
-publications. Ces comptes servent à peupler la base et à vérifier que l'import
-s'est bien passé — **leurs mots de passe ne sont pas communiqués**, il faut donc
-créer un compte pour utiliser l'application.
+Le script `docker/init/01-schema.sql` crée les 11 tables au premier démarrage,
+mais **aucune donnée n'est importée** : le jeu de données de développement
+contient de vraies adresses e-mail et des empreintes de mots de passe, il est
+donc exclu du dépôt.
 
-Pour vérifier que l'import a fonctionné :
+La base démarre donc structurée et vide. Le parcours ci-dessus part de là, et
+c'est aussi ce qui le rend représentatif : vous voyez l'application se remplir
+comme un vrai utilisateur la remplirait.
+
+Pour vérifier que les tables ont bien été créées :
 
 ```bash
-docker compose exec db mysql -uroot -p"$DB_PASSWORD" projetdiplome \
-  -e "SELECT COUNT(*) AS projets FROM project;"
+docker compose exec db mysql -uroot -p"votre_mot_de_passe" projetdiplome \
+  -e "SHOW TABLES;"
 ```
 
 </details>
