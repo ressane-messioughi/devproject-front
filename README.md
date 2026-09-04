@@ -11,12 +11,137 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
 [![Socket.IO](https://img.shields.io/badge/Socket.IO-4-010101?style=flat-square&logo=socketdotio&logoColor=white)](https://socket.io)
 
-<a href="#installation">Installation</a> ·
+<a href="#démarrage-rapide">🚀 Démarrage rapide</a> ·
+<a href="#ce-que-ça-fait">Fonctionnalités</a> ·
 <a href="#le-temps-réel-la-partie-qui-ma-le-plus-appris">Le temps réel</a> ·
+<a href="#les-tests">Tests</a> ·
 <a href="#ce-que-je-nai-pas-fait">Limites</a> ·
-<a href="https://github.com/ressane-messioughi/DevPROject-Backend">Backend</a>
+<a href="https://github.com/ressane-messioughi/devproject-back">Backend</a>
 
 </div>
+
+---
+
+## Démarrage rapide
+
+**Toute l'application — interface, API et base de données — en une commande.**
+Seul [Docker](https://docs.docker.com/get-started/get-docker/) est nécessaire :
+ni Node, ni MySQL, ni configuration de base de données.
+
+```bash
+# 1. Les deux dépôts, côte à côte dans le même dossier
+git clone https://github.com/ressane-messioughi/devproject-front.git DPJ-Frontend
+git clone https://github.com/ressane-messioughi/devproject-back.git  DPJ-Backend
+
+# 2. Les variables d'environnement
+cd DPJ-Frontend
+cp .env.example .env
+
+# 3. On lance
+docker compose up -d --build
+```
+
+Avant la troisième commande, ouvrez le `.env` et renseignez ces trois valeurs :
+
+```bash
+DB_PASSWORD=un_mot_de_passe_au_choix
+JWT_SECRET=une_longue_chaine_aleatoire
+DB_NAME=projetdiplome
+```
+
+Les trois clés `CLOUDINARY_*` ne servent qu'à l'envoi des photos de profil.
+Laissées vides, l'application fonctionne normalement — seul l'upload d'avatar
+sera indisponible.
+
+Comptez **deux à trois minutes** la première fois : Docker télécharge MySQL et
+nginx, construit les deux images et importe le jeu de données.
+
+### ➜ L'application est sur **http://localhost:8080**
+
+### Le parcours de découverte, en 5 minutes
+
+Le plus court chemin pour voir toutes les fonctionnalités, y compris le temps
+réel. Il faut **deux fenêtres de navigateur**, dont une en navigation privée.
+
+| | Fenêtre 1 | Fenêtre 2 <sub>(privée)</sub> |
+|---|---|---|
+| **1** | Créer un compte, puis se connecter | |
+| **2** | Créer un projet — il devient le projet actif | |
+| **3** | Le **code d'équipe** et son QR code s'affichent sur le tableau de bord | |
+| **4** | | Créer un second compte |
+| **5** | | Saisir le code d'équipe pour demander à rejoindre le projet |
+| **6** | Page **Équipe** : accepter la demande, attribuer un rôle | |
+| **7** | 👀 L'avatar du second compte **apparaît en direct** dans la barre des membres connectés, et une notification s'affiche | |
+| **8** | | Publier dans le **Journal** ou signaler un **Bug** |
+| **9** | 👀 La notification arrive **sans recharger la page** | |
+
+Les étapes **7** et **9** sont la fonctionnalité temps réel : c'est là que
+Socket.IO travaille.
+
+<details>
+<summary><b>À propos du jeu de données pré-chargé</b></summary>
+
+<br>
+
+La base est importée au premier démarrage avec des projets, des équipes et des
+publications. Ces comptes servent à peupler la base et à vérifier que l'import
+s'est bien passé — **leurs mots de passe ne sont pas communiqués**, il faut donc
+créer un compte pour utiliser l'application.
+
+Pour vérifier que l'import a fonctionné :
+
+```bash
+docker compose exec db mysql -uroot -p"$DB_PASSWORD" projetdiplome \
+  -e "SELECT COUNT(*) AS projets FROM project;"
+```
+
+</details>
+
+<details>
+<summary><b>Les trois conteneurs, et ce qu'ils font</b></summary>
+
+<br>
+
+| Conteneur | Image | Port | Rôle |
+|---|---|---|---|
+| `devproject-front` | construite depuis `Dockerfile` | `8080` | L'interface React, compilée puis servie par nginx |
+| `devproject-back` | construite depuis `../DPJ-Backend` | `3000` | L'API Express et le serveur Socket.IO |
+| `devproject-db` | `mysql:8.4` | `3308` | MySQL, avec le schéma et les données importés au premier démarrage |
+
+Le port `3308` évite le conflit avec un MySQL déjà installé sur la machine
+(XAMPP occupe `3306`, Homebrew `3307`).
+
+</details>
+
+<details>
+<summary><b>Vérifier, consulter les journaux, arrêter</b></summary>
+
+<br>
+
+```bash
+docker compose ps          # l'état des trois conteneurs
+docker compose logs -f     # les journaux en direct
+docker compose logs back   # ceux de l'API seulement
+
+docker compose down        # arrêter, en gardant les données
+docker compose down -v     # arrêter et repartir d'une base vierge
+```
+
+</details>
+
+<details>
+<summary><b>Si quelque chose ne démarre pas</b></summary>
+
+<br>
+
+| Symptôme | Cause probable | Solution |
+|---|---|---|
+| `port is already allocated` | Un service occupe déjà `8080`, `3000` ou `3308` | Modifier le port de gauche dans `docker-compose.yml` |
+| Le back redémarre en boucle | La base n'était pas prête | `docker compose logs back` — le `healthcheck` fait normalement patienter le back |
+| La page est blanche | Le build du front a échoué | `docker compose logs front` |
+| Connexion refusée à la base | Le `.env` a changé après le 1er démarrage | `docker compose down -v` puis relancer : le mot de passe n'est lu qu'à la création du volume |
+
+</details>
 
 ---
 
@@ -46,6 +171,32 @@ On crée un projet, ou on rejoint celui de quelqu'un d'autre avec un code d'équ
 Ensuite, chaque projet a son journal de bord pour tracer les décisions, et son suivi de bugs avec pièce jointe et changement de statut. Les membres connectés apparaissent en direct, et toute publication déclenche une notification chez les autres dans la seconde.
 
 L'authentification passe par un JWT, les mots de passe sont hachés côté serveur avec bcrypt, et les photos de profil sont hébergées sur Cloudinary.
+
+---
+
+## Du cahier des charges à l'application
+
+Le cahier des charges a été rédigé avant la conception. Voici, point par point,
+ce qui a été livré — et ce qui ne l'a pas été.
+
+| Besoin exprimé | État | Ce qui a été fait |
+|---|:--:|---|
+| Créer un compte, se connecter, se déconnecter | ✅ | JWT, mots de passe hachés avec bcrypt |
+| Modifier ses informations, gérer son profil | ✅ | Pseudo, téléphone, ville, mot de passe, avatar |
+| Rôles et permissions | ✅ | Rôle applicatif (`USER` / `ADMIN`) et rôle dans le projet (propriétaire, développeur, designer…) |
+| Créer, modifier, supprimer un projet | ✅ | Avec code d'équipe et lien Trello |
+| Ajouter ou retirer des membres | ✅ | Demandes d'adhésion validées par le propriétaire, code d'équipe et QR code d'invitation |
+| Consulter l'état d'avancement | ✅ | Journal de bord et suivi des bugs par projet |
+| Échanger des publications, suivre l'activité | ✅ | Journal du projet, avec notification en temps réel |
+| Entraide sur les blocages | ✅ | Suivi de bugs avec pièce jointe et changement de statut |
+| Gestion des tâches (priorité, échéance, statut) | ⚠️ | Les routes, contrôleurs et tables existent côté backend. L'interface n'a pas été construite. |
+| Récupération du mot de passe par e-mail | ❌ | Reporté : demandait un service d'envoi d'e-mails, hors du périmètre du MVP |
+
+**Le choix assumé :** j'ai préféré livrer un petit nombre de fonctionnalités
+réellement terminées plutôt qu'un ensemble plus large à moitié fini. La gestion
+des tâches et la récupération de mot de passe sont les deux arbitrages que j'ai
+faits, et je les assume — le cahier des charges prévoyait justement une première
+version limitée aux fonctionnalités indispensables.
 
 ---
 
@@ -86,13 +237,16 @@ La règle que je me suis donnée : un composant de `ui/` reçoit tout par props 
 
 ---
 
-## Installation
+## Installation sans Docker
 
-Il vous faut **Node 20 ou plus**, le [backend](https://github.com/ressane-messioughi/DevPROject-Backend) démarré, et une base **MySQL** accessible.
+Pour développer sur le front, le [démarrage rapide](#démarrage-rapide) ne suffit
+pas : il faut le serveur Vite et son rechargement à chaud.
+
+Il vous faut **Node 20 ou plus**, le [backend](https://github.com/ressane-messioughi/devproject-back) démarré, et une base **MySQL** accessible.
 
 ```bash
-git clone https://github.com/ressane-messioughi/devproject.git
-cd devproject
+git clone https://github.com/ressane-messioughi/devproject-front.git
+cd devproject-front
 npm install
 cp .env.example .env
 ```
@@ -126,6 +280,42 @@ npm run dev
 | `npm run format` | Prettier sur tout le projet |
 
 </details>
+
+---
+
+## Les tests
+
+Les tests tournent avec **Vitest** et **Testing Library**, côté front comme côté
+back.
+
+```bash
+npm test              # lance la suite
+npm test -- --watch   # relance à chaque modification
+```
+
+Le choix a été de ne pas viser une couverture large, mais de **tester ce dont
+une régression coûterait le plus cher** : la validation des formulaires et
+l'affichage des erreurs.
+
+**6 tests répartis dans 5 fichiers.**
+
+| Ce qui est testé | Fichier |
+|---|---|
+| Le formulaire de création refuse un envoi vide | `ButtonProject.test.jsx` |
+| Il refuse un nom de projet trop court | `ButtonProject.test.jsx` |
+| Le formulaire de connexion affiche l'erreur renvoyée par le serveur | `LoginComponentLeft.test.jsx` |
+| `useIsOwner` renvoie `true` pour le propriétaire du projet | `useIsOwner.test.jsx` |
+| `FieldError` affiche le message de l'erreur | `FieldError.test.jsx` |
+| `Button` déclenche l'action au clic | `Button.test.jsx` |
+
+Le principe des tests de formulaire mérite un mot, parce que c'est ce qui les
+rend fiables : `useFetch` et `react-toastify` sont **remplacés par des
+doublures**. Aucun appel réseau n'est fait, aucune donnée n'est créée. On simule
+un utilisateur qui clique et qui tape, puis on vérifie deux choses — les messages
+d'erreur s'affichent, et **la fonction d'appel à l'API n'a jamais été appelée**.
+
+C'est la preuve que la validation bloque *avant* l'envoi, et pas seulement que
+le serveur aurait refusé la requête.
 
 ---
 
@@ -192,7 +382,7 @@ Autant le dire moi-même plutôt que d'attendre qu'on le trouve.
 
 **La liste des membres connectés vit en mémoire.** Un redémarrage du serveur l'efface, et une mise à l'échelle sur plusieurs instances demanderait un stockage partagé.
 
-**Il n'y a pas de tests automatisés.** La qualité repose aujourd'hui sur ESLint, Prettier, Husky et un jeu d'essai manuel documenté. Une base Vitest est la prochaine étape, et c'est le chantier que je regrette le plus de ne pas avoir ouvert plus tôt.
+**La couverture de tests est volontairement étroite.** Elle porte sur la validation des formulaires et l'authentification, là où une régression se verrait le plus. Les contextes, le temps réel et les pages ne sont pas couverts — c'est le chantier que je regrette le plus de ne pas avoir ouvert plus tôt, parce qu'écrire les tests après coup demande bien plus d'efforts que de les écrire au fil de l'eau.
 
 ---
 
