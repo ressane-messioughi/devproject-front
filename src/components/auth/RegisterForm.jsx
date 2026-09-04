@@ -11,6 +11,9 @@ import Button from '../ui/Button.jsx';
 import { INPUT_PLACEHOLDER_CLASS } from '../../constants/formClasses.js';
 
 const PHONE_REGEX = /^0[1-9](\.\d{2}){4}$/;
+const UPPERCASE_REGEX = /[A-Z]/;
+const DIGIT_REGEX = /[0-9]/;
+const SPECIAL_CHAR_REGEX = /[^A-Za-z0-9]/;
 
 function RegisterForm() {
   const {
@@ -84,7 +87,23 @@ function RegisterForm() {
           id="password"
           label="Mot de passe :"
           type="password"
-          register={register('password', { required: 'Mot de passe requis' })}
+          register={register('password', {
+            required: 'Mot de passe requis',
+            minLength: {
+              value: 8,
+              message: 'Le mot de passe doit contenir au moins 8 caractères',
+            },
+            validate: {
+              majuscule: (value) =>
+                UPPERCASE_REGEX.test(value) ||
+                'Le mot de passe doit contenir au moins une majuscule',
+              chiffre: (value) =>
+                DIGIT_REGEX.test(value) || 'Le mot de passe doit contenir au moins un chiffre',
+              special: (value) =>
+                SPECIAL_CHAR_REGEX.test(value) ||
+                'Le mot de passe doit contenir au moins un caractère spécial',
+            },
+          })}
           error={errors.password}
         />
 
