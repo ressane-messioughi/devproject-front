@@ -6,7 +6,7 @@
 #   git clone https://github.com/ressane-messioughi/devproject-front.git DPJ-Frontend
 #   git clone https://github.com/ressane-messioughi/devproject-back.git  DPJ-Backend
 #   cd DPJ-Frontend
-#   cp .env.example.docker .env   puis remplir les valeurs
+#   cp .env.example .env          puis remplir les valeurs
 #   docker compose up -d --build
 #
 
@@ -73,7 +73,9 @@ services:
         # Valeurs injectees pendant la construction (voir le Dockerfile du front)
         VITE_API_URL: http://localhost:3000/api
         VITE_SOCKET_URL: http://localhost:3000
-        VITE_APP_URL: http://localhost:5173
+        # 8080, et non 5173 : en conteneur le front est servi par nginx sur 8080.
+        # C'est cette valeur qui construit les liens d'invitation et le QR code.
+        VITE_APP_URL: http://localhost:8080
     container_name: devproject-front
     restart: unless-stopped
     ports:
