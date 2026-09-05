@@ -82,7 +82,7 @@ function ButtonProject() {
     setSelectedProject(newProject);
     localStorage.setItem('selectedProject', JSON.stringify(newProject));
     setOpenModal(null);
-    toast.success('Projet créée avec succès !');
+    toast.success('Projet créé avec succès !');
   };
 
   return (
