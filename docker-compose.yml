@@ -73,13 +73,20 @@ services:
         # Valeurs injectees pendant la construction (voir le Dockerfile du front)
         VITE_API_URL: http://localhost:3000/api
         VITE_SOCKET_URL: http://localhost:3000
-        # 8080, et non 5173 : en conteneur le front est servi par nginx sur 8080.
-        # C'est cette valeur qui construit les liens d'invitation et le QR code.
+        # 8080 et non 5173 : 5173 est le port du serveur Vite, qui ne tourne qu'en
+        # developpement. En conteneur, l'interface est servie par nginx et joignable
+        # sur http://localhost:8080 depuis la machine.
+        # C'est cette valeur qui construit les liens d'invitation et le QR code :
+        # elle doit correspondre a l'adresse que l'utilisateur a dans son navigateur.
         VITE_APP_URL: http://localhost:8080
     container_name: devproject-front
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8080:80"                       # 8080 sur la machine -> 80 dans nginx
+      # Gauche = port sur la machine, droite = port dans le conteneur.
+      # nginx ecoute sur 80 a l'interieur ; on l'expose sur 8080 a l'exterieur.
+      # 127.0.0.1 restreint l'acces a cette machine uniquement : retirer ce prefixe
+      # pour ouvrir le front aux autres appareils du reseau local.
+      - "127.0.0.1:8080:80"
     depends_on:
       - back
 
