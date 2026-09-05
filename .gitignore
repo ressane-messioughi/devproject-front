@@ -28,3 +28,9 @@ dist-ssr
 
 # Donnees exportees de la base locale, jamais versionnees
 docker/init/02-donnees.sql
+
+# Surcharge propre au serveur de production. Elle ne doit jamais etre publiee :
+# docker compose la charge automatiquement si elle est presente, et le clone du
+# depot se retrouverait configure pour le VPS au lieu de la machine locale.
+docker-compose.override.yml
+docker-compose.vps.yml
